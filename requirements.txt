@@ -1,0 +1,16 @@
+python-dotenv
+requests
+pytesseract
+Pillow
+PyPDF2
+PyMuPDF
+beautifulsoup4
+python-docx
+striprtf
+openai
+supabase
+crawl4ai
+pydantic_ai
+httpx
+logfire
+devtools

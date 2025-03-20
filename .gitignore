@@ -1,0 +1,19 @@
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+env/
+.venv/
+*.egg-info/
+
+# Environment variables
+.env
+
+# Log files
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
