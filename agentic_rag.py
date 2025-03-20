@@ -29,7 +29,7 @@ from pydantic_ai.models.openai import OpenAIModel
 load_dotenv()
 
 # Set log level from env variable; default to ERROR.
-log_level = os.getenv("LOG_LEVEL", "ERROR").upper()
+log_level = os.getenv("LOG_LEVEL", "DEBUG").upper()
 logging.basicConfig(level=getattr(logging, log_level, logging.ERROR))
 
 # Set model (default to gpt-4o-mini)
@@ -84,6 +84,7 @@ system_prompt = (
     "After determining which chunks are relevant, use retrieve_relevant_documentation to fetch their full content. "
     "Finally, formulate your answer solely based on the retrieved documentation chunks. "
     "If the query is general, answer it directly using general world knowledge."
+    "IMPORTANT: Provide only the final answer without including any tool call metadata or IDs."
 )
 
 # Create the main agent.
@@ -183,27 +184,31 @@ async def get_documentation_summary(ctx: RunContext[DocumentationDeps], doc_id: 
         logging.error(f"Error in get_documentation_summary: {e}")
         return ""
 
-# New Tool: resolve_time_period – compute a time period if mentioned in the query.
+# New Tool: resolve_time_period – use OpenAI to determine the date range for a time period in the query.
+@doc_agent.tool
 async def resolve_time_period(ctx: RunContext[DocumentationDeps], query: str) -> str:
     logging.debug(f"Resolving time period for query using OpenAI: {query}")
     now = datetime.now()
     current_date = now.strftime("%d %B %Y %H:%M:%S")
     prompt = (
         f"You are a helpful assistant specialized in understanding time periods. "
-        f"Given the following query and the current date and time, determine the date range that the query is referring to. "
+        f"Given the current date and time, and a query mentioning a time period, determine the date range that the query refers to. "
         f"Current date and time: {current_date}\n\n"
         f"Query: {query}\n\n"
         "Output only the date range in the format 'StartDate - EndDate' (for example, '10 March 2025 - 16 March 2025'). "
         "If the query does not clearly refer to a time period, output 'No specific time period identified.'"
     )
+    # Create a temporary agent using the prompt
+    time_agent = Agent(
+        model,
+        system_prompt=prompt,
+        retries=2
+    )
     try:
-        response = await model.chat_completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "system", "content": prompt}],
-        )
-        result = response.choices[0].message.content.strip()
-        logging.debug(f"Resolved time period: {result}")
-        return result
+        result = await time_agent.run("")
+        resolved = result.data.strip()
+        logging.debug(f"Resolved time period: {resolved}")
+        return resolved
     except Exception as e:
         logging.error(f"Error resolving time period with OpenAI: {e}")
         return "No specific time period identified."
