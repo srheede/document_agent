@@ -29,7 +29,7 @@ from pydantic_ai.models.openai import OpenAIModel
 load_dotenv()
 
 # Set log level from env variable; default to ERROR.
-log_level = os.getenv("LOG_LEVEL", "DEBUG").upper()
+log_level = os.getenv("LOG_LEVEL", "INFO").upper()
 logging.basicConfig(level=getattr(logging, log_level, logging.ERROR))
 
 # Set model (default to gpt-4o-mini)
@@ -54,6 +54,7 @@ class DocumentationDeps:
 
 # Helper: Get embedding for a text string using OpenAI async API.
 async def get_embedding(text: str) -> List[float]:
+    logging.info("Called get_embedding")
     logging.debug(f"Getting embedding for text (first 30 chars): {text[:30]}...")
     try:
         response = await aclient.embeddings.create(model="text-embedding-3-small", input=text)
@@ -98,6 +99,7 @@ doc_agent = Agent(
 # Tool: determine_query_type – classify the query using a temporary agent.
 @doc_agent.tool
 async def determine_query_type(ctx: RunContext[DocumentationDeps], query: str) -> str:
+    logging.info("Called determine_query_type")
     logging.debug(f"Determining query type for: {query}")
     classification_prompt = (
         "You are a query classification agent. Your task is to decide whether a user's question should be "
@@ -120,6 +122,7 @@ async def determine_query_type(ctx: RunContext[DocumentationDeps], query: str) -
 # Tool: retrieve_relevant_documentation – get matching documentation chunks.
 @doc_agent.tool
 async def retrieve_relevant_documentation(ctx: RunContext[DocumentationDeps], query: str, match_count: int = 10) -> List[Dict[str, Any]]:
+    logging.info("Called retrieve_relevant_documentation")
     logging.debug(f"Retrieving relevant documentation for query: {query}")
     embedding = await get_embedding(query)
     try:
@@ -140,6 +143,7 @@ async def retrieve_relevant_documentation(ctx: RunContext[DocumentationDeps], qu
 # Tool: get_documentation_titles – list distinct documentation entries.
 @doc_agent.tool
 async def get_documentation_titles(ctx: RunContext[DocumentationDeps]) -> List[Dict[str, Any]]:
+    logging.info("Called get_documentation_titles")
     logging.debug("Fetching documentation titles.")
     try:
         response = ctx.deps.supabase.table("site_pages").select("id, title").execute()
@@ -165,6 +169,7 @@ async def get_documentation_titles(ctx: RunContext[DocumentationDeps]) -> List[D
 # Tool: get_documentation_summary – retrieve a documentation summary by its id.
 @doc_agent.tool
 async def get_documentation_summary(ctx: RunContext[DocumentationDeps], doc_id: int) -> str:
+    logging.info("Called get_documentation_summary")
     logging.debug(f"Fetching documentation summary for id: {doc_id}")
     try:
         response = ctx.deps.supabase.table("site_pages").select("summary").eq("id", doc_id).limit(1).execute()
@@ -187,6 +192,7 @@ async def get_documentation_summary(ctx: RunContext[DocumentationDeps], doc_id: 
 # New Tool: resolve_time_period – use OpenAI to determine the date range for a time period in the query.
 @doc_agent.tool
 async def resolve_time_period(ctx: RunContext[DocumentationDeps], query: str) -> str:
+    logging.info("Called resolve_time_period")
     logging.debug(f"Resolving time period for query using OpenAI: {query}")
     now = datetime.now()
     current_date = now.strftime("%d %B %Y %H:%M:%S")
@@ -196,7 +202,6 @@ async def resolve_time_period(ctx: RunContext[DocumentationDeps], query: str) ->
         f"Current date and time: {current_date}\n\n"
         f"Query: {query}\n\n"
         "Output only the date range in the format 'StartDate - EndDate' (for example, '10 March 2025 - 16 March 2025'). "
-        "If the query does not clearly refer to a time period, output 'No specific time period identified.'"
     )
     # Create a temporary agent using the prompt
     time_agent = Agent(
@@ -207,7 +212,7 @@ async def resolve_time_period(ctx: RunContext[DocumentationDeps], query: str) ->
     try:
         result = await time_agent.run("")
         resolved = result.data.strip()
-        logging.debug(f"Resolved time period: {resolved}")
+        logging.info(f"Resolved time period: {resolved}")
         return resolved
     except Exception as e:
         logging.error(f"Error resolving time period with OpenAI: {e}")
@@ -215,6 +220,7 @@ async def resolve_time_period(ctx: RunContext[DocumentationDeps], query: str) ->
 
 # Interactive chat loop using the agent.
 async def interactive_chat():
+    logging.info("Called interactive_chat")
     print("Hello! I am your Agentic RAG. How can I help you today?")
     while True:
         try:
