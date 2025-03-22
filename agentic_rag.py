@@ -85,7 +85,7 @@ system_prompt = (
     "After determining which chunks are relevant, use retrieve_relevant_documentation to fetch their full content. "
     "Finally, formulate your answer solely based on the retrieved documentation chunks. "
     "If the query is general, answer it directly using general world knowledge."
-    "IMPORTANT: Provide only the final answer without including any tool call metadata or IDs."
+    "IMPORTANT: For every incoming query, always call determine_query_type to classify the query before processing further. Provide only the final answer without including any tool call metadata or IDs."
 )
 
 # Create the main agent.

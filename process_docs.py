@@ -26,7 +26,6 @@ from docx import Document
 load_dotenv()
 
 # Initialize clients
-from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode
 from openai import AsyncOpenAI
 from supabase import create_client, Client
 
